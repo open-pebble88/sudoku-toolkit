@@ -1,0 +1,8 @@
+[package]
+name = "sudoku-toolkit"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "A small library and CLI for parsing and checking sudoku boards"
+
+[dependencies]
