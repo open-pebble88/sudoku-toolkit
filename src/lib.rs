@@ -131,6 +131,69 @@ impl Board {
     pub fn is_complete(&self) -> bool {
         self.cells.iter().all(|row| row.iter().all(|&v| v != 0))
     }
+
+    /// Finds a solution by backtracking, filling every `0` cell.
+    ///
+    /// Returns `None` if the board is already invalid, or if no
+    /// assignment of the empty cells satisfies the row/column/box
+    /// constraints. Does not check for a *unique* solution; if several
+    /// exist this returns the first one found.
+    pub fn solve(&self) -> Option<Board> {
+        if !self.is_valid() {
+            return None;
+        }
+        let mut cells = self.cells;
+        if solve_cells(&mut cells) {
+            Some(Board { cells })
+        } else {
+            None
+        }
+    }
+}
+
+fn solve_cells(cells: &mut [[u8; SIZE]; SIZE]) -> bool {
+    let next_empty = (0..SIZE)
+        .flat_map(|row| (0..SIZE).map(move |col| (row, col)))
+        .find(|&(row, col)| cells[row][col] == 0);
+
+    let (row, col) = match next_empty {
+        Some(pos) => pos,
+        None => return true,
+    };
+
+    for candidate in 1..=9u8 {
+        if is_safe(cells, row, col, candidate) {
+            cells[row][col] = candidate;
+            if solve_cells(cells) {
+                return true;
+            }
+            cells[row][col] = 0;
+        }
+    }
+    false
+}
+
+fn is_safe(cells: &[[u8; SIZE]; SIZE], row: usize, col: usize, val: u8) -> bool {
+    for c in 0..SIZE {
+        if cells[row][c] == val {
+            return false;
+        }
+    }
+    for r in 0..SIZE {
+        if cells[r][col] == val {
+            return false;
+        }
+    }
+    let box_row = (row / BOX_SIZE) * BOX_SIZE;
+    let box_col = (col / BOX_SIZE) * BOX_SIZE;
+    for r in 0..BOX_SIZE {
+        for c in 0..BOX_SIZE {
+            if cells[box_row + r][box_col + c] == val {
+                return false;
+            }
+        }
+    }
+    true
 }
 
 fn has_duplicate(vals: [u8; SIZE]) -> bool {
@@ -222,5 +285,56 @@ mod tests {
         let printed = board.to_string();
         let reparsed = Board::parse(&printed).unwrap();
         assert_eq!(board, reparsed);
+    }
+
+    #[test]
+    fn solves_a_valid_puzzle() {
+        let board = Board::parse(VALID_INCOMPLETE).unwrap();
+        let solved = board.solve().expect("puzzle has a solution");
+        assert!(solved.is_valid());
+        assert!(solved.is_complete());
+
+        // the solution must agree with every given clue
+        for row in 0..SIZE {
+            for col in 0..SIZE {
+                let given = board.get(row, col);
+                if given != 0 {
+                    assert_eq!(solved.get(row, col), given);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn solving_a_complete_board_returns_it_unchanged() {
+        let board = Board::parse(VALID_INCOMPLETE).unwrap();
+        let solved = board.solve().unwrap();
+        assert_eq!(solved.solve().unwrap(), solved);
+    }
+
+    #[test]
+    fn solve_returns_none_for_invalid_board() {
+        let board = Board::parse(ROW_CONFLICT).unwrap();
+        assert!(board.solve().is_none());
+    }
+
+    #[test]
+    fn solve_returns_none_when_no_assignment_works() {
+        // top-left box holds 1-8 with (2,2) empty, so it needs a 9, but
+        // row 2 already has a 9 elsewhere, so no digit fits (2,2).
+        const UNSOLVABLE: &str = "\
+123......
+456......
+78......9
+.........
+.........
+.........
+.........
+.........
+.........
+";
+        let board = Board::parse(UNSOLVABLE).unwrap();
+        assert!(board.is_valid());
+        assert!(board.solve().is_none());
     }
 }

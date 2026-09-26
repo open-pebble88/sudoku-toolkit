@@ -76,19 +76,23 @@ let board = Board::parse(&text)?;
 
 assert!(board.is_valid());
 println!("{}", board.get(0, 0)); // 5
+
+let solution = board.solve().expect("has a solution");
+assert!(solution.is_complete());
 ```
 
 ## What's here
 
-- `src/lib.rs`: `Board`, parsing, and the row/column/box validity check.
+- `src/lib.rs`: `Board`, parsing, the row/column/box validity check, and
+  a backtracking `solve()`.
 - `src/main.rs`: the `sudoku` binary — file-or-stdin input, prints a
   short report.
 
 ## Not here yet
 
-There's no solver and no generator. Right now this only checks that a
-board is well-formed and free of obvious conflicts; it doesn't tell you
-whether a puzzle has a unique solution, or find one.
+`solve()` isn't wired up to the CLI yet, so there's no `--solve` flag.
+There's also no puzzle generator, and no check for a *unique* solution —
+`solve()` just returns the first one it finds.
 
 ## Building
 
