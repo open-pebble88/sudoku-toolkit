@@ -5,9 +5,31 @@ use std::process::ExitCode;
 
 use sudoku_toolkit::Board;
 
+const USAGE: &str = "usage: sudoku [--solve] [FILE | -]";
+
 fn main() -> ExitCode {
-    let mut args = env::args().skip(1);
-    let path = args.next();
+    let mut solve = false;
+    let mut path: Option<String> = None;
+
+    for arg in env::args().skip(1) {
+        match arg.as_str() {
+            "--solve" => solve = true,
+            // a lone "-" means stdin, so it is a path, not a flag
+            flag if flag.starts_with('-') && flag != "-" => {
+                eprintln!("unknown option: {}", flag);
+                eprintln!("{}", USAGE);
+                return ExitCode::FAILURE;
+            }
+            _ => {
+                if path.is_some() {
+                    eprintln!("only one input file may be given");
+                    eprintln!("{}", USAGE);
+                    return ExitCode::FAILURE;
+                }
+                path = Some(arg);
+            }
+        }
+    }
 
     let input = match path.as_deref() {
         None | Some("-") => match read_stdin() {
@@ -33,6 +55,19 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+
+    if solve {
+        return match board.solve() {
+            Some(solution) => {
+                print!("{}", solution);
+                ExitCode::SUCCESS
+            }
+            None => {
+                eprintln!("no solution");
+                ExitCode::FAILURE
+            }
+        };
+    }
 
     print!("{}", board);
     println!("valid:    {}", board.is_valid());

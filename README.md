@@ -66,6 +66,16 @@ EOF
 Exit status is 0 when the board is structurally valid, 1 when it's
 either malformed (parse error) or has a duplicate.
 
+With `--solve`, the CLI prints the solved grid instead of the report:
+
+```
+$ sudoku --solve board.txt
+```
+
+If the board is invalid or has no solution, it prints `no solution` to
+stderr and exits 1. When a puzzle has several solutions, the first one
+found is printed.
+
 ## Library usage
 
 ```rust
@@ -86,12 +96,11 @@ assert!(solution.is_complete());
 - `src/lib.rs`: `Board`, parsing, the row/column/box validity check, and
   a backtracking `solve()`.
 - `src/main.rs`: the `sudoku` binary — file-or-stdin input, prints a
-  short report.
+  short report or, with `--solve`, the solution.
 
 ## Not here yet
 
-`solve()` isn't wired up to the CLI yet, so there's no `--solve` flag.
-There's also no puzzle generator, and no check for a *unique* solution —
+There's no puzzle generator, and no check for a *unique* solution —
 `solve()` just returns the first one it finds.
 
 ## Building
